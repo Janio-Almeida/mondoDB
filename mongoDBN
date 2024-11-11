@@ -1,0 +1,140 @@
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from bson import ObjectId
+
+
+uri = "mongodb+srv://janioal94:janio1994@agendatarefa.l45zj.mongodb.net/?retryWrites=true&w=majority&appName=AgendaTarefa"
+client = MongoClient(uri, server_api=ServerApi('1'))
+
+
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(f"Erro de conexão: {e}")
+
+db = client["AgendaTarefa"]
+tarefas_collection = db["tarefas"]
+estudantes_collection = db["estudantes"]
+
+
+def criar_estudante(nome, idade, curso):
+    novo_estudante = {
+        "nome": nome,
+        "idade": idade,
+        "curso": curso
+    }
+    result = estudantes_collection.insert_one(novo_estudante)
+    print(f"Estudante inserido com ID: {result.inserted_id}")
+
+criar_estudante("Adonai", 31, "Engenharia")
+
+
+def atualizar_estudante(estudante_id, novo_nome=None, nova_idade=None, novo_curso=None):
+    atualizacao = {}
+
+    if novo_nome:
+        atualizacao["nome"] = novo_nome
+    if nova_idade:
+        atualizacao["idade"] = nova_idade
+    if novo_curso:
+        atualizacao["curso"] = novo_curso
+
+    if atualizacao:
+        result = estudantes_collection.update_one(
+            {"_id": ObjectId(estudante_id)}, 
+            {"$set": atualizacao}  
+        )
+        if result.modified_count:
+            print("Estudante atualizado com sucesso!")
+        else:
+            print("Nenhuma alteração feita ou estudante não encontrado.")
+    else:
+        print("Nenhum dado para atualizar.")
+
+
+estudante_id = "6732584bfd26eafec29759fa"
+atualizar_estudante(estudante_id, novo_nome="Thais", nova_idade=27, novo_curso="Bio Medica")
+
+
+def deletar_estudante(estudante_id):
+    result = estudantes_collection.delete_one({"_id": ObjectId(estudante_id)})
+    if result.deleted_count:
+        print("Estudante deletado com sucesso!")
+    else:
+        print("Estudante não encontrado.")
+
+
+estudante_id = "673258abcc9e3057bc0b2c98"
+deletar_estudante(estudante_id)
+
+# # Função para criar uma tarefa associada a um estudante
+# def criar_tarefa(descricao, estudante_id):
+#     if not ObjectId.is_valid(estudante_id):
+#         print("ID de estudante inválido.")
+#         return
+
+#     tarefa = {
+#         "descricao": descricao,
+#         "estudante_id": ObjectId(estudante_id),  # Associando o estudante com o ObjectId
+#         "status": "pendente"  # Adicionando o status da tarefa
+#     }
+
+#     result = tarefas_collection.insert_one(tarefa)
+#     print(f"Tarefa criada com sucesso! ID: {result.inserted_id}")
+#     return result.inserted_id
+
+# # Exemplo de criação de tarefa
+# estudante_id = "673257dec68b8d28afe2e68c"
+# descricao = "Estudar MongoDB para a prova"
+# criar_tarefa(descricao, estudante_id)
+
+# # Função para listar todas as tarefas de um estudante
+# def listar_tarefas_por_estudante(estudante_id):
+#     if not ObjectId.is_valid(estudante_id):
+#         print("ID de estudante inválido.")
+#         return
+
+#     tarefas = tarefas_collection.find({"estudante_id": ObjectId(estudante_id)})
+
+#     if tarefas.count_documents({}) == 0:  # Usando count_documents() no lugar de count()
+#         print("Nenhuma tarefa encontrada para esse estudante.")
+#         return
+
+#     for tarefa in tarefas:
+#         estudante = estudantes_collection.find_one({"_id": tarefa["estudante_id"]})
+#         print(f"Tarefa: {tarefa['descricao']}")
+#         print(f"Status: {tarefa['status']}")
+#         print(f"Estudante: {estudante['nome']} - {estudante['curso']}")
+#         print("="*50)
+
+# # Exemplo de uso
+# listar_tarefas_por_estudante(estudante_id)
+
+# # Função para listar todas as tarefas com as informações dos estudantes
+# def listar_tarefas_com_estudante():
+#     pipeline = [
+#         {
+#             "$lookup": {
+#                 "from": "estudantes",  # Nome da coleção de estudantes
+#                 "localField": "estudante_id",  # Campo da tarefa que armazena o estudante_id
+#                 "foreignField": "_id",  # Campo da coleção de estudantes que será relacionado
+#                 "as": "estudante_info"  # Nome do campo que vai armazenar os dados do estudante
+#             }
+#         },
+#         {
+#             "$unwind": "$estudante_info"  # Desempacotando o campo estudante_info para acessar os dados
+#         }
+#     ]
+
+#     tarefas_com_estudantes = tarefas_collection.aggregate(pipeline)
+
+#     for tarefa in tarefas_com_estudantes:
+#         print(f"Tarefa: {tarefa['descricao']}")
+#         print(f"Status: {tarefa['status']}")
+#         print(f"Estudante: {tarefa['estudante_info']['nome']}")
+#         print(f"Curso: {tarefa['estudante_info']['curso']}")
+#         print("="*50)
+
+# # Exemplo de uso
+# listar_tarefas_com_estudante()
